@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script type="text/javascript">
+        var quiz; // JSON object containing "word" and "epithet"
+        var guessedLetters; // array of guessed letters, initially just _ _ _ _ ...
+        var wrongGuesses = 0;
+        var done = false;
+
+        function init() {
+            quiz = getQuiz();
+            if (quiz) {
+                initGuessedLetters();
+                displayGuessedLetters();
+                createButtons();
+                display("solve");
+            } else {
+                display("create");
+            }
+        }
+
+        function getQuiz() {
+            var urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has("quiz")) {
+                return null;
+            }
+            var quizParam = urlParams.get("quiz");
+            return JSON.parse(atob(quizParam));
+        }
+
+        function initGuessedLetters() {
+            guessedLetters = Array.from('_'.repeat(quiz["word"].length));
+        }
+
+        function displayGuessedLetters() {
+            document.getElementById("guessedLetters").innerText = guessedLetters.join(' ');
+        }
+
+        function displayCurrentEpithet() {
+            var epithet = quiz["epithet"];
+            var label;
+            if (done) {
+                label = "Grattis :)";
+            } else {
+                if (wrongGuesses >= epithet.length) {
+                    label = epithet + " !!!";
+                } else {
+                    label = "Du är just nu: " + epithet.substr(0, wrongGuesses) + " ...";
+                }
+            }
+            document.getElementById("currentEpithet").innerText = label;
+        }
+
+        function createButtons() {
+            var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ";
+            for (var i = 0; i < alphabet.length; i++) {
+                addButton(alphabet.charAt(i));
+            }
+        }
+
+        function addButton(ch) {
+            var button = document.createElement("button");
+            button.innerHTML = ch;
+            button.onclick = function() {
+                if (done) {
+                    return;
+                }
+                pushButton(ch);
+                this.disabled = true;
+            };
+
+            var buttons = document.getElementById("buttons");
+            buttons.appendChild(button);
+        }
+
+        function pushButton(ch) {
+            var correctGuess = false;
+            var word = quiz["word"];
+            for (var i = 0; i < word.length; i++) {
+                if (word.charAt(i) === ch) {
+                    guessedLetters[i] = ch;
+                    correctGuess = true;
+                }
+            }
+            if (correctGuess) {
+                displayGuessedLetters();
+                if (guessedLetters.join("") === word) {
+                    done = true;
+                    displayCurrentEpithet();
+                }
+            } else {
+                wrongGuesses++;
+                displayCurrentEpithet();
+            }
+        }
+
+        function display(id) {
+            document.getElementById(id).style.display = "block";
+        }
+
+        function createQuiz() {
+            var quizParamJson = '{ "word": "' + document.getElementById("word").value + '"'
+                + ', "epithet": "' + document.getElementById("epithet").value + '" }';
+            document.getElementById("quizurl").innerText = window.location + '?quiz=' + btoa(quizParamJson);
+        }
+
+    </script>
+
+</head>
+
+<body onload="init()">
+
+    <div id="create" style="display: none;">
+        <h1>Skapa ny omgång</h1>
+        <form>
+            <h2>Ord som din motspelare ska gissa</h2>
+            <input id="word" onkeyup="this.value = this.value.toUpperCase();">
+            <h2>Vilket epitet vill du ge din motspelare vid en eventuell förlust?</h2>
+            <i>(Exempel: om du anger DRUMMEL får din motspelare sju försök på sig innan hen misslyckas och blir en DRUMMEL)</i>
+            <br>
+            <input id="epithet">
+            <br>
+            <br>
+            <button type="button" onclick="createQuiz()">Skapa</button>
+            <br>
+            <div id="quizurl"></div>
+        </form>
+    </div>
+
+    <div id="solve" style="display: none;">
+        <h1>Lös problem</h1>
+        <div id="buttons"></div>
+        <br>
+        <div id="guessedLetters"></div>
+        <br>
+        <div id="currentEpithet"></div>
+    </div>
+
+</body>
+</html>
